@@ -1,47 +1,56 @@
-use std::fs::File;
-use std::io;
-use std::io::{BufRead};
-use std::path::Path;
+extern crate core;
 
-fn main() {
-    // let lock = io::stdin().lock();
-    // let lines: Vec<_> = lock.lines().collect::<Result<_, _>>().expect("Error reading lines");
-    let lines: Vec<String> = read_lines("input").expect("Error reading file").collect::<Result<_, _>>().expect("Error reading lines");
-    let x: Vec<String> = lines
+use std::iter::Iterator;
+use std::string::ToString;
+
+use anyhow::Result;
+use find_numbers::find_numbers;
+use tracing::{debug, instrument};
+
+pub mod digit_word;
+mod find_numbers;
+pub mod utils;
+
+use crate::utils::read_lines;
+
+fn main() -> Result<()> {
+    pretty_env_logger::init();
+
+    let lines: Vec<String> = read_lines("input")
+        .expect("Error reading file")
+        .collect::<Result<_, _>>()
+        .expect("Error reading lines");
+    let x = extract_calibration_value(lines);
+
+    let sum: u64 = x
+        .iter()
+        .map(|l| l.parse::<u64>().expect("Could not parse int"))
+        .sum();
+    println!("sum: {}", sum);
+    Ok(())
+}
+
+#[instrument]
+pub fn extract_calibration_value(lines: Vec<String>) -> Vec<String> {
+    lines
         .iter()
         .filter_map(|line| {
-            let chars: Vec<char> = line.chars()
-                .map(|c| c.clone())
-                .collect::<Vec<char>>();
-            let numbers: Vec<&char> = chars
-                .iter()
-                .filter(|c| c.is_numeric())
-                .collect();
+            let numbers = find_numbers(line).unwrap();
 
-            dbg!(line, numbers.clone());
+            debug!(line = line, "{:?}", numbers.clone());
 
             match numbers.as_slice() {
                 &[a] => {
                     let res = Some([a, a]);
                     res
-                },
+                }
                 &[a, .., b] => {
                     let res = Some([a, b]);
                     res
-                },
+                }
                 _ => None,
-            }.map(| pair| String::from_iter(pair.map(|c| c.to_string())))
+            }
+            .map(|pair| String::from_iter(pair.map(|c| c.to_string())))
         })
-        .collect();
-
-    let sum: u64 = x.iter().map(|l| l.parse::<u64>().expect("Could not parse int")).sum();
-    println!("sum: {}", sum);
-}
-
-// The output is wrapped in a Result to allow matching on errors
-// Returns an Iterator to the Reader of the lines of the file.
-fn read_lines<P>(filename: P) -> io::Result<io::Lines<io::BufReader<File>>>
-    where P: AsRef<Path>, {
-    let file = File::open(filename)?;
-    Ok(io::BufReader::new(file).lines())
+        .collect()
 }
