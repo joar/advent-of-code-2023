@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::ops::{RangeInclusive};
+use std::ops::RangeInclusive;
 
 use anyhow::Context;
 use tracing::{instrument, trace, trace_span};
@@ -27,8 +27,8 @@ pub fn find_numbers(text: &str) -> anyhow::Result<Vec<u8>> {
         .entered();
         match char.is_numeric() {
             true => {
-                next_start_positions =
-                    drop_overlapping(text, &mut next_start_positions, cursor_pos);
+                // next_start_positions =
+                //     drop_overlapping(text, &mut next_start_positions, cursor_pos);
                 trace!(char = char.to_string(), "DIGIT");
                 recognized_ranges.push(cursor_pos..=cursor_pos);
                 buf.push(char.to_string().parse::<u8>()?);
@@ -87,8 +87,8 @@ pub fn find_numbers(text: &str) -> anyhow::Result<Vec<u8>> {
                                 );
                                 recognized_ranges.push(range);
 
-                                next_start_positions =
-                                    drop_overlapping(text, &mut next_start_positions, cursor_pos);
+                                // next_start_positions =
+                                //     drop_overlapping(text, &mut next_start_positions, cursor_pos);
 
                                 buf.push(candidate.int_value())
                             }
@@ -98,6 +98,10 @@ pub fn find_numbers(text: &str) -> anyhow::Result<Vec<u8>> {
                                     candidate = candidate.as_value(),
                                     "KEEP",
                                 );
+                                next_start_positions
+                                    .get_mut(&cursor_pos)
+                                    .with_context(|| format!("Index {:?} not found", cursor_pos))?
+                                    .push(candidate);
                             }
                         },
                     }
@@ -105,11 +109,8 @@ pub fn find_numbers(text: &str) -> anyhow::Result<Vec<u8>> {
             }
         }
         match_start_positions.clear();
-        match_start_positions.extend(
-            next_start_positions
-                .iter()
-                .map(|(k, v)| (*k, v.clone())),
-        );
+        match_start_positions.extend(next_start_positions.iter().map(|(k, v)| (*k, v.clone())));
+        next_start_positions = create_start_positions(text.len());
         span_match.exit();
     }
 
@@ -197,6 +198,6 @@ mod test {
         e: ("4nineeightseven2", vec![4, 9, 8, 7, 2]),
         f: ("zoneight234", vec![1, 2, 3, 4]),
         g: ("7pqrstsixteen", vec![7, 6]),
-        h: ("7nineight", vec![7, 8]),
+        h: ("7nineight", vec![7, 9, 8]),
     }
 }
