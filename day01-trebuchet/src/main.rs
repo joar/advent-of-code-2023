@@ -7,6 +7,7 @@ use anyhow::Result;
 use find_numbers::find_numbers;
 use tracing::instrument;
 
+pub mod calibration_digit;
 pub mod digit_word;
 mod find_numbers;
 pub mod utils;
@@ -16,7 +17,7 @@ use crate::utils::{maybe_init_logging, read_lines};
 fn main() -> Result<()> {
     color_backtrace::install();
     maybe_init_logging();
-    let lines: Vec<String> = read_lines("input")
+    let lines: Vec<String> = read_lines("../input")
         .expect("Error reading file")
         .collect::<Result<_, _>>()
         .expect("Error reading lines");
