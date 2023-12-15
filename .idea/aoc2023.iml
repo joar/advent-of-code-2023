@@ -5,6 +5,7 @@
     <content url="file://$MODULE_DIR$">
       <sourceFolder url="file://$MODULE_DIR$/aoc2023lib/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/day01-trebuchet/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/day03-gear/src" isTestSource="false" />
       <excludeFolder url="file://$MODULE_DIR$/day01-trebuchet/target" />
       <excludeFolder url="file://$MODULE_DIR$/target" />
     </content>
