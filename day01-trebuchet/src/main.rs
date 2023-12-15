@@ -12,11 +12,11 @@ pub mod digit_word;
 mod find_numbers;
 pub mod utils;
 
-use aoc2023lib::{maybe_init_logging, read_lines};
+use aoc2023lib::{init_logging, read_lines};
 
 fn main() -> Result<()> {
     color_backtrace::install();
-    maybe_init_logging();
+    init_logging();
     let lines: Vec<String> = read_lines("../input")
         .expect("Error reading file")
         .collect::<Result<_, _>>()

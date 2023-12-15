@@ -58,13 +58,13 @@ pub fn format_text_with_marked_span_multiline(text: &str, range: Range<usize>) -
 #[cfg(test)]
 mod test {
     use crate::utils::format_text_span;
-    use aoc2023lib::maybe_init_logging;
+    use aoc2023lib::init_logging;
     use ctor::ctor;
     use paste::paste;
 
     #[ctor]
     fn init() {
-        maybe_init_logging();
+        init_logging();
     }
 
     macro_rules! test_format_text_span {

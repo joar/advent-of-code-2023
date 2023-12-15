@@ -19,7 +19,7 @@ where
 
 static LOGGING_INIT: Once = Once::new();
 
-pub fn maybe_init_logging() {
+pub fn init_logging() {
     LOGGING_INIT.call_once(|| {
         pretty_env_logger::init();
 

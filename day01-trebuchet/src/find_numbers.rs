@@ -258,7 +258,7 @@ fn create_start_positions(len: usize) -> HashMap<usize, Vec<DigitWord>> {
 
 #[cfg(test)]
 mod test {
-    use aoc2023lib::maybe_init_logging;
+    use aoc2023lib::init_logging;
     use ctor::ctor;
     use paste::paste;
 
@@ -266,7 +266,7 @@ mod test {
 
     #[ctor]
     fn init() {
-        maybe_init_logging();
+        init_logging();
     }
 
     macro_rules! test_find_numbers {
