@@ -1,10 +1,7 @@
 use anyhow::Result;
-use pest::Parser;
 
 use crate::data::Game;
 use aoc2023lib::read_lines;
-
-use crate::parser::{GamesParser, Rule};
 
 mod parser {
     use pest_derive::Parser;
@@ -41,13 +38,26 @@ fn main() -> Result<()> {
         })
         .collect();
     let sum_of_possible_game_numbers: u32 = possible_games.iter().map(|&game| game.number).sum();
-    for g in possible_games.clone() {
-        eprintln!("{:?}", g);
-    }
+    // Part one
     println!(
         "Found {} possible games with sum: {}",
         possible_games.len(),
         sum_of_possible_game_numbers
+    );
+
+    // Part two
+    let sum_of_power_of_min_cubes_per_game: u32 = games
+        .iter()
+        .map(|game| {
+            let max_red = game.sets.iter().map(|&stats| stats.red).max().unwrap();
+            let max_green = game.sets.iter().map(|&stats| stats.green).max().unwrap();
+            let max_blue = game.sets.iter().map(|&stats| stats.blue).max().unwrap();
+            max_red * max_green * max_blue
+        })
+        .sum();
+    println!(
+        "Sum of power of min cubes per game: {}",
+        sum_of_power_of_min_cubes_per_game
     );
     Ok(())
 }
