@@ -5,36 +5,8 @@ use std::io::BufRead;
 use std::ops::{Index, Range, RangeBounds};
 use std::path::Path;
 use std::slice::SliceIndex;
-use std::sync::Once;
 
-use tracing_subscriber::fmt::Layer;
-use tracing_subscriber::layer::Layered;
 use tracing_subscriber::prelude::*;
-use tracing_subscriber::Registry;
-
-static LOGGING_INIT: Once = Once::new();
-
-pub fn maybe_init_logging() {
-    LOGGING_INIT.call_once(|| {
-        pretty_env_logger::init();
-
-        let subscriber = create_tracing_subscriber();
-
-        tracing::subscriber::set_global_default(subscriber).unwrap();
-    });
-}
-
-pub fn create_tracing_subscriber() -> Layered<Layer<Registry>, Registry, Registry> {
-    Registry::default().with(Layer::default())
-}
-
-pub fn read_lines<P>(filename: P) -> io::Result<io::Lines<io::BufReader<File>>>
-where
-    P: AsRef<Path>,
-{
-    let file = File::open(filename)?;
-    Ok(io::BufReader::new(file).lines())
-}
 
 const LEFT_BOTTOM_CORNER: &str = "└";
 const RIGHT_BOTTOM_CORNER: &str = "┘";
@@ -89,10 +61,9 @@ pub fn format_text_with_marked_span_multiline(text: &str, range: Range<usize>) -
 
 #[cfg(test)]
 mod test {
+    use aoc2023lib::maybe_init_logging;
     use ctor::ctor;
     use paste::paste;
-
-    use crate::utils::{format_text_span, maybe_init_logging};
 
     #[ctor]
     fn init() {

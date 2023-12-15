@@ -1,0 +1,21 @@
+// https://docs.rs/pest_derive/latest/pest_derive/
+digit = { ASCII_DIGIT }
+
+red = { "red" }
+green = { "green" }
+blue = { "blue" }
+
+cube_color = { red | green | blue }
+
+positive_integer = { ASCII_NONZERO_DIGIT ~ ASCII_DIGIT* }
+cube_amount = { positive_integer }
+amount_and_color = { cube_amount ~ " " ~ cube_color}
+
+cube_draw = { (amount_and_color ~ ", ")* ~ amount_and_color }
+
+sets_of_cube_draws = { (cube_draw ~ "; ")* ~ cube_draw }
+
+game_number = { positive_integer }
+game = { "Game " ~ game_number ~ ": " ~ sets_of_cube_draws }
+
+games = { (game ~ "\n")* ~ game }

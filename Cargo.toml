@@ -1,6 +1,7 @@
 [workspace]
 resolver = "2"
 members = [
+    "aoc2023lib",
     "day01-trebuchet",
     "day02-cube-conundrum",
 ]
