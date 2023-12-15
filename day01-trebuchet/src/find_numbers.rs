@@ -258,11 +258,11 @@ fn create_start_positions(len: usize) -> HashMap<usize, Vec<DigitWord>> {
 
 #[cfg(test)]
 mod test {
+    use aoc2023lib::maybe_init_logging;
     use ctor::ctor;
     use paste::paste;
 
     use crate::find_numbers::{check_match, find_numbers, MatchCandidate, MatchResult};
-    use crate::utils::maybe_init_logging;
 
     #[ctor]
     fn init() {

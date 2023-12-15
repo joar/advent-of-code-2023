@@ -1,12 +1,8 @@
 use std::collections::Bound;
-use std::fs::File;
-use std::io;
-use std::io::BufRead;
-use std::ops::{Index, Range, RangeBounds};
-use std::path::Path;
-use std::slice::SliceIndex;
 
-use tracing_subscriber::prelude::*;
+use std::ops::{Index, Range, RangeBounds};
+
+use std::slice::SliceIndex;
 
 const LEFT_BOTTOM_CORNER: &str = "└";
 const RIGHT_BOTTOM_CORNER: &str = "┘";
@@ -61,6 +57,7 @@ pub fn format_text_with_marked_span_multiline(text: &str, range: Range<usize>) -
 
 #[cfg(test)]
 mod test {
+    use crate::utils::format_text_span;
     use aoc2023lib::maybe_init_logging;
     use ctor::ctor;
     use paste::paste;
