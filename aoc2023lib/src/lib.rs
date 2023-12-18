@@ -1,3 +1,5 @@
+pub mod draw;
+
 use std::fs::File;
 use std::io;
 use std::io::BufRead;
