@@ -9,28 +9,9 @@ use ::grid::Grid;
 use anyhow::{anyhow, Context as AnyhowContext, Result};
 use cairo;
 use cairo::{Context, Format, ImageSurface};
-use piston_window::*;
 
 use aoc2023lib::draw::{draw_text_in_center_of_square, Color, Draw, Point, Rectangle};
 use aoc2023lib::{init_logging, read_lines};
-
-fn piston_run() {
-    let mut window: PistonWindow = WindowSettings::new("Hello Piston!", [640, 480])
-        .exit_on_esc(true)
-        .build()
-        .unwrap();
-    while let Some(event) = window.next() {
-        window.draw_2d(&event, |context, graphics, _device| {
-            clear([1.0; 4], graphics);
-            rectangle(
-                [1.0, 0.0, 0.0, 1.0], // red
-                [0.0, 0.0, 100.0, 100.0],
-                context.transform,
-                graphics,
-            );
-        });
-    }
-}
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 enum Value {
@@ -56,77 +37,6 @@ impl RGB {
     }
 }
 
-fn draw_grid(grid: Grid<Value>) -> Result<()> {
-    let square_size: f64 = 20.0;
-    let surface = ImageSurface::create(
-        Format::ARgb32,
-        (grid.cols() * square_size.round() as usize) as i32,
-        (grid.rows() * square_size.round() as usize) as i32,
-    )?;
-
-    let context = Context::new(&surface)?;
-
-    // context.select_font_face("Inconsolata", FontSlant::Normal, FontWeight::Normal);
-    // context.set_font_size(20.0);
-    // context.set_operator(Operator::Over);
-
-    for x_int in 0..grid.cols() {
-        for y_int in 0..grid.rows() {
-            let (x, y) = (x_int as f64, y_int as f64);
-            let top_left = Point::new(square_size * x, square_size * y);
-            let center = top_left + Point::new(square_size / 2., square_size / 2.);
-            // let bottom_left = top_left.add(Point::new(0.0, square_size));
-            match grid.get(y_int, x_int) {
-                Some(a) => match a {
-                    Value::Blank => {}
-                    Value::Symbol(c) => {
-                        Rectangle::create(top_left, square_size, square_size)
-                            .fill(Color::rgba(0.0, 0.0, 0.0, 0.1))
-                            .draw(&context)?;
-
-                        let string = String::from(*c);
-                        let text = string.as_str();
-                        draw_text_in_center_of_square(
-                            &context,
-                            Color::rgba(0.0, 0.0, 0.0, 1.0),
-                            text,
-                            &center,
-                            &square_size,
-                        )?;
-                    }
-                    Value::Digit(value) => {
-                        Rectangle::create(top_left, square_size, square_size)
-                            .fill(Color::rgba(0.0, 0.0, 1.0, 0.1))
-                            .draw(&context)?;
-
-                        let str = format!("{}", value);
-                        let digit = str.as_str();
-                        draw_text_in_center_of_square(
-                            &context,
-                            Color::rgb(0., 0., 0.),
-                            digit,
-                            &center,
-                            &square_size,
-                        )?;
-                    }
-                },
-                None => {}
-            }
-        }
-    }
-
-    let evaluator = Evaluator::new(grid)?;
-    evaluator.run()?;
-
-    let mut file = File::create("output.png").context("Could not create output file")?;
-    surface
-        .write_to_png(&mut file)
-        .context("Could not write surface to file")?;
-
-    // context.move_to(0, 0)
-    Ok(())
-}
-
 struct Evaluator {
     grid: Grid<Value>,
     square_size: f64,
@@ -138,13 +48,15 @@ struct Evaluator {
 impl<'a> Evaluator {
     pub fn new(grid: Grid<Value>) -> Result<Self> {
         let square_size: f64 = 20.0;
-        let surface = ImageSurface::create(
-            Format::ARgb32,
-            (grid.cols() * square_size.round() as usize) as i32,
-            (grid.rows() * square_size.round() as usize) as i32,
-        )?;
+        let width = (grid.cols() * square_size.round() as usize) as i32;
+        let height = (grid.rows() * square_size.round() as usize) as i32;
+        let surface = ImageSurface::create(Format::ARgb32, width, height)?;
 
         let context = Context::new(&surface)?;
+
+        context.rectangle(0., 0., width as f64, height as f64);
+        context.set_source_rgb(1., 1., 1.);
+        context.fill()?;
 
         Ok(Self {
             grid,
@@ -154,53 +66,114 @@ impl<'a> Evaluator {
             frame_counter: AtomicUsize::new(0),
         })
     }
-    fn run(self) -> Result<()> {
+
+    fn run(&self) -> Result<()> {
         self.draw_grid()?;
         self.write_frame()?;
+
+        let mut part_numbers: Vec<PartNumber> = Vec::new();
+
+        for symbol_position in self.find_symbols() {
+            self.fill_square(symbol_position, Color::rgba(0., 0., 1., 0.1))?;
+            self.write_frame()?;
+            for part_number_positions in self.find_part_numbers(symbol_position) {
+                for pos in part_number_positions.clone() {
+                    self.fill_square(pos, Color::rgba(1., 0., 0., 0.1))?;
+                }
+
+                self.write_frame()?;
+                let part_number =
+                    PartNumber::from_grid_positions(&self.grid, part_number_positions)?;
+                part_numbers.push(part_number);
+            }
+        }
+
+        let sum: i32 = part_numbers.iter().map(|pn| pn.number).sum();
+        println!("Sum is {}", sum);
         Ok(())
+    }
+
+    fn find_part_numbers(&self, symbol_position: Position) -> impl Iterator<Item = Vec<Position>> {
+        let neighbor_positions = get_neighbor_positions(&self.grid, symbol_position);
+        let mut visited_positions: HashSet<Position> = HashSet::new();
+        neighbor_positions
+            .iter()
+            .filter_map(|pos| match pos.grid_value(&self.grid) {
+                Some(Value::Digit(_)) => {
+                    if !visited_positions.contains(pos) {
+                        visited_positions.insert(pos.clone());
+                        let connected_numbers = complete_part_number(&self.grid, pos.clone());
+                        for cp in connected_numbers.clone() {
+                            visited_positions.insert(cp.clone());
+                        }
+                        Some(connected_numbers)
+                    } else {
+                        None
+                    }
+                }
+                _ => None,
+            })
+            .collect::<Vec<Vec<Position>>>()
+            .into_iter()
+    }
+
+    fn fill_square(&self, position: Position, color: Color) -> Result<()> {
+        let top_left = Point::new(
+            self.square_size * position.x() as f64,
+            self.square_size * position.y() as f64,
+        );
+        Rectangle::create(top_left, self.square_size, self.square_size)
+            .fill(color)
+            .draw(&self.context)
     }
 
     fn draw_grid(&self) -> Result<()> {
         let grid = &self.grid;
-        let square_size = self.square_size;
-        let context = self.context.clone();
         for x_int in 0..grid.cols() {
             for y_int in 0..grid.rows() {
                 let (x, y) = (x_int as f64, y_int as f64);
-                let top_left = Point::new(square_size * x, square_size * y);
-                let center = top_left + Point::new(square_size / 2., square_size / 2.);
+                let top_left = Point::new(self.square_size * x, self.square_size * y);
+                let center = top_left + Point::new(self.square_size / 2., self.square_size / 2.);
                 // let bottom_left = top_left.add(Point::new(0.0, square_size));
                 match grid.get(y_int, x_int) {
                     Some(a) => match a {
-                        Value::Blank => {}
+                        Value::Blank => {
+                            draw_text_in_center_of_square(
+                                &self.context,
+                                Color::rgba(0.0, 0.0, 0.0, 1.0),
+                                ".",
+                                &center,
+                                &self.square_size,
+                            )?;
+                        }
                         Value::Symbol(c) => {
-                            Rectangle::create(top_left, square_size, square_size)
-                                .fill(Color::rgba(0.0, 0.0, 0.0, 0.1))
-                                .draw(&context)?;
+                            // Rectangle::create(top_left, square_size, square_size)
+                            //     .fill(Color::rgba(0.0, 0.0, 0.0, 0.1))
+                            //     .draw(&context)?;
 
                             let string = String::from(*c);
                             let text = string.as_str();
                             draw_text_in_center_of_square(
-                                &context,
+                                &self.context,
                                 Color::rgba(0.0, 0.0, 0.0, 1.0),
                                 text,
                                 &center,
-                                &square_size,
+                                &self.square_size,
                             )?;
                         }
                         Value::Digit(value) => {
-                            Rectangle::create(top_left, square_size, square_size)
-                                .fill(Color::rgba(0.0, 0.0, 1.0, 0.1))
-                                .draw(&context)?;
+                            // Rectangle::create(top_left, square_size, square_size)
+                            //     .fill(Color::rgba(0.0, 0.0, 1.0, 0.1))
+                            //     .draw(&context)?;
 
                             let str = format!("{}", value);
                             let digit = str.as_str();
                             draw_text_in_center_of_square(
-                                &context,
+                                &self.context,
                                 Color::rgb(0., 0., 0.),
                                 digit,
                                 &center,
-                                &square_size,
+                                &self.square_size,
                             )?;
                         }
                     },
@@ -211,8 +184,8 @@ impl<'a> Evaluator {
         Ok(())
     }
 
-    fn find_symbols<'g>(grid: &'g Grid<Value>) -> impl Iterator<Item = Position> + 'g {
-        grid.iter_rows().enumerate().flat_map(|(y, row)| {
+    fn find_symbols(&self) -> impl Iterator<Item = Position> + '_ {
+        self.grid.iter_rows().enumerate().flat_map(|(y, row)| {
             row.enumerate().filter_map(move |(x, value)| match value {
                 Value::Blank => None,
                 Value::Symbol(_) => Some(Position {
@@ -224,12 +197,11 @@ impl<'a> Evaluator {
         })
     }
 
-    fn write_frame(self) -> Result<()> {
-        let filename = format!(
-            "frame-{:05}.png",
-            self.frame_counter.fetch_add(1, Ordering::SeqCst)
-        )
-        .to_string();
+    fn write_frame(&self) -> Result<()> {
+        let idx = self.frame_counter.fetch_add(1, Ordering::SeqCst);
+        let filename = format!("frame-{:05}.png", idx).to_string();
+
+        eprintln!("Writing frame {:?}", filename);
         let mut file =
             File::create(filename.as_str()).context("Could not create frame output file")?;
         self.surface
@@ -348,34 +320,14 @@ fn get_neighbor_positions(grid: &Grid<Value>, position: Position) -> Vec<Positio
     neighbors
 }
 
-fn find_part_numbers(
-    grid: &Grid<Value>,
-    symbol_position: Position,
-) -> impl Iterator<Item = Vec<Position>> {
-    let neighbor_positions = get_neighbor_positions(grid, symbol_position);
-    let mut visited_positions: HashSet<Position> = HashSet::new();
-    neighbor_positions
-        .iter()
-        .filter_map(|pos| match pos.grid_value(grid) {
-            Some(Value::Digit(_)) => {
-                if !visited_positions.contains(pos) {
-                    visited_positions.insert(pos.clone());
-                    Some(complete_part_number(grid, pos.clone()))
-                } else {
-                    None
-                }
-            }
-            _ => None,
-        })
-        .collect::<Vec<Vec<Position>>>()
-        .into_iter()
-}
-
 fn complete_part_number(grid: &Grid<Value>, symbol_position: Position) -> Vec<Position> {
     let mut pos = symbol_position;
     let mut positions: HashSet<Position> = HashSet::new();
     while let Some(Value::Digit(_)) = pos.grid_value(grid) {
         positions.insert(pos);
+        if pos.x == 0 {
+            break;
+        }
         pos = Position::new(pos.x - 1, pos.y);
     }
     pos = symbol_position;
@@ -427,10 +379,9 @@ fn main() -> Result<()> {
         .collect::<Result<_, _>>()
         .context("Could not read line")?;
     let grid = grid_from_lines(lines.iter().map(String::as_str).collect::<Vec<&str>>())?;
-    draw_grid(grid)?;
 
-    // piston_run();
-    // pollster::block_on(run());
+    let evaluator = Evaluator::new(grid)?;
+    evaluator.run()?;
     println!("Hello, world!");
     Ok(())
 }
