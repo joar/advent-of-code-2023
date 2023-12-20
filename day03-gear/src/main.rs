@@ -1,5 +1,4 @@
-extern crate piston_window;
-
+use std::cell::RefCell;
 use std::collections::HashSet;
 use std::fs::File;
 use std::ops::{Add, Index};
@@ -20,22 +19,10 @@ enum Value {
     Digit(u8),
 }
 
-#[derive(Copy, Clone)]
-struct RGB {
-    r: f64,
-    g: f64,
-    b: f64,
-}
-
-impl RGB {
-    fn new(r: f64, g: f64, b: f64) -> Self {
-        Self { r, g, b }
-    }
-
-    fn set_source_color(&self, context: &Context) {
-        context.set_source_rgb(self.r, self.g, self.b)
-    }
-}
+static SYMBOL_COLOR: Color = Color::rgb(0.9, 0.9, 1.0);
+static PART_NUMBER_COMPLETION_COLOR: Color = Color::rgb(1.0, 0.9, 0.9);
+static GEAR_SYMBOL_COLOR: Color = Color::rgb(1.0, 1.0, 0.9);
+static PART_NUMBER_COLOR: Color = Color::rgb(0.8, 1.0, 0.8);
 
 struct Evaluator {
     grid: Grid<Value>,
@@ -43,6 +30,7 @@ struct Evaluator {
     surface: ImageSurface,
     context: Context,
     frame_counter: AtomicUsize,
+    last_focus: RefCell<Option<Position>>,
 }
 
 impl<'a> Evaluator {
@@ -64,32 +52,56 @@ impl<'a> Evaluator {
             surface,
             context,
             frame_counter: AtomicUsize::new(0),
+            last_focus: RefCell::new(None),
         })
+    }
+
+    fn set_focus(&self, position: Position) {
+        let _ = self.last_focus.borrow_mut().insert(position);
     }
 
     fn run(&self) -> Result<()> {
         self.draw_grid()?;
-        self.write_frame()?;
 
         let mut part_numbers: Vec<PartNumber> = Vec::new();
+        let mut gear_ratios: Vec<(PartNumber, PartNumber)> = vec![];
 
         for symbol_position in self.find_symbols() {
-            self.fill_square(symbol_position, Color::rgba(0., 0., 1., 0.1))?;
-            self.write_frame()?;
+            let mut part_numbers_for_symbol: Vec<PartNumber> = vec![];
+            self.set_focus(symbol_position);
+            self.write_focused_frame()?;
+            self.draw_grid_value_with_background(symbol_position, SYMBOL_COLOR)?;
             for part_number_positions in self.find_part_numbers(symbol_position) {
                 for pos in part_number_positions.clone() {
-                    self.fill_square(pos, Color::rgba(1., 0., 0., 0.1))?;
+                    self.draw_grid_value_with_background(pos, PART_NUMBER_COLOR)?;
                 }
 
-                self.write_frame()?;
                 let part_number =
                     PartNumber::from_grid_positions(&self.grid, part_number_positions)?;
-                part_numbers.push(part_number);
+                part_numbers_for_symbol.push(part_number);
+                self.write_focused_frame()?;
+            }
+            self.write_focused_frame()?;
+
+            if let Some(Value::Symbol('*')) = symbol_position.grid_value(&self.grid) {
+                if part_numbers_for_symbol.len() == 2 {
+                    self.draw_grid_value_with_background(symbol_position, GEAR_SYMBOL_COLOR)?;
+                    gear_ratios.push((
+                        part_numbers_for_symbol[0].clone(),
+                        part_numbers_for_symbol[1].clone(),
+                    ));
+                    self.write_focused_frame()?;
+                }
+            }
+            for pn in part_numbers_for_symbol {
+                part_numbers.push(pn);
             }
         }
 
         let sum: i32 = part_numbers.iter().map(|pn| pn.number).sum();
         println!("Sum is {}", sum);
+        let gear_ratio_sum: i32 = gear_ratios.iter().map(|(a, b)| a.number * b.number).sum();
+        println!("Gear ratio sum is {}", gear_ratio_sum);
         Ok(())
     }
 
@@ -102,7 +114,7 @@ impl<'a> Evaluator {
                 Some(Value::Digit(_)) => {
                     if !visited_positions.contains(pos) {
                         visited_positions.insert(pos.clone());
-                        let connected_numbers = complete_part_number(&self.grid, pos.clone());
+                        let connected_numbers = self.complete_part_number(pos.clone()).unwrap();
                         for cp in connected_numbers.clone() {
                             visited_positions.insert(cp.clone());
                         }
@@ -117,6 +129,32 @@ impl<'a> Evaluator {
             .into_iter()
     }
 
+    fn complete_part_number(&self, symbol_position: Position) -> Result<Vec<Position>> {
+        let mut pos = symbol_position;
+        let mut positions: HashSet<Position> = HashSet::new();
+        while let Some(Value::Digit(_)) = pos.grid_value(&self.grid) {
+            if !positions.contains(&pos) {
+                self.draw_grid_value_with_background(pos.clone(), PART_NUMBER_COMPLETION_COLOR)?;
+                self.write_focused_frame()?;
+            }
+            positions.insert(pos);
+            if pos.x == 0 {
+                break;
+            }
+            pos = Position::new(pos.x - 1, pos.y);
+        }
+        pos = symbol_position;
+        while let Some(Value::Digit(_)) = pos.grid_value(&self.grid) {
+            if !positions.contains(&pos) {
+                self.draw_grid_value_with_background(pos.clone(), PART_NUMBER_COMPLETION_COLOR)?;
+                self.write_focused_frame()?;
+            }
+            positions.insert(pos);
+            pos = Position::new(pos.x + 1, pos.y);
+        }
+        Ok(positions.into_iter().collect())
+    }
+
     fn fill_square(&self, position: Position, color: Color) -> Result<()> {
         let top_left = Point::new(
             self.square_size * position.x() as f64,
@@ -127,58 +165,71 @@ impl<'a> Evaluator {
             .draw(&self.context)
     }
 
+    fn draw_grid_value_with_background(&self, position: Position, background: Color) -> Result<()> {
+        self.fill_square(position.clone(), Color::rgb(1.0, 1.0, 1.0))?;
+        self.fill_square(position.clone(), background)?;
+        self.draw_grid_value(position)?;
+        Ok(())
+    }
+
+    fn draw_grid_value(&self, position: Position) -> Result<()> {
+        let top_left = Point::new(
+            self.square_size * position.x() as f64,
+            self.square_size * position.y() as f64,
+        );
+        let center = top_left + Point::new(self.square_size / 2., self.square_size / 2.);
+        match position.grid_value(&self.grid) {
+            Some(a) => match a {
+                Value::Blank => {
+                    draw_text_in_center_of_square(
+                        &self.context,
+                        Color::rgba(0.0, 0.0, 0.0, 1.0),
+                        ".",
+                        &center,
+                        &self.square_size,
+                    )?;
+                }
+                Value::Symbol(c) => {
+                    // Rectangle::create(top_left, square_size, square_size)
+                    //     .fill(Color::rgba(0.0, 0.0, 0.0, 0.1))
+                    //     .draw(&context)?;
+
+                    let string = String::from(*c);
+                    let text = string.as_str();
+                    draw_text_in_center_of_square(
+                        &self.context,
+                        Color::rgba(0.0, 0.0, 0.0, 1.0),
+                        text,
+                        &center,
+                        &self.square_size,
+                    )?;
+                }
+                Value::Digit(value) => {
+                    // Rectangle::create(top_left, square_size, square_size)
+                    //     .fill(Color::rgba(0.0, 0.0, 1.0, 0.1))
+                    //     .draw(&context)?;
+
+                    let str = format!("{}", value);
+                    let digit = str.as_str();
+                    draw_text_in_center_of_square(
+                        &self.context,
+                        Color::rgb(0., 0., 0.),
+                        digit,
+                        &center,
+                        &self.square_size,
+                    )?;
+                }
+            },
+            None => {}
+        }
+        Ok(())
+    }
+
     fn draw_grid(&self) -> Result<()> {
         let grid = &self.grid;
         for x_int in 0..grid.cols() {
             for y_int in 0..grid.rows() {
-                let (x, y) = (x_int as f64, y_int as f64);
-                let top_left = Point::new(self.square_size * x, self.square_size * y);
-                let center = top_left + Point::new(self.square_size / 2., self.square_size / 2.);
-                // let bottom_left = top_left.add(Point::new(0.0, square_size));
-                match grid.get(y_int, x_int) {
-                    Some(a) => match a {
-                        Value::Blank => {
-                            draw_text_in_center_of_square(
-                                &self.context,
-                                Color::rgba(0.0, 0.0, 0.0, 1.0),
-                                ".",
-                                &center,
-                                &self.square_size,
-                            )?;
-                        }
-                        Value::Symbol(c) => {
-                            // Rectangle::create(top_left, square_size, square_size)
-                            //     .fill(Color::rgba(0.0, 0.0, 0.0, 0.1))
-                            //     .draw(&context)?;
-
-                            let string = String::from(*c);
-                            let text = string.as_str();
-                            draw_text_in_center_of_square(
-                                &self.context,
-                                Color::rgba(0.0, 0.0, 0.0, 1.0),
-                                text,
-                                &center,
-                                &self.square_size,
-                            )?;
-                        }
-                        Value::Digit(value) => {
-                            // Rectangle::create(top_left, square_size, square_size)
-                            //     .fill(Color::rgba(0.0, 0.0, 1.0, 0.1))
-                            //     .draw(&context)?;
-
-                            let str = format!("{}", value);
-                            let digit = str.as_str();
-                            draw_text_in_center_of_square(
-                                &self.context,
-                                Color::rgb(0., 0., 0.),
-                                digit,
-                                &center,
-                                &self.square_size,
-                            )?;
-                        }
-                    },
-                    None => {}
-                }
+                self.draw_grid_value(Position::new(x_int, y_int))?;
             }
         }
         Ok(())
@@ -197,9 +248,95 @@ impl<'a> Evaluator {
         })
     }
 
+    fn write_focused_frame(&self) -> Result<()> {
+        let idx = self.frame_counter.fetch_add(1, Ordering::SeqCst);
+        let output_path = format!("scratch/day03/focused").to_string();
+        let filename = format!("{}/frame-{:05}.png", output_path, idx).to_string();
+
+        eprintln!("Writing focused frame {:?}", filename);
+        let mut file = File::create(filename.as_str())
+            .context("Could not create focused frame output file")?;
+
+        let pos = self.last_focus.borrow().unwrap();
+
+        let width = 800;
+        let height = 600;
+        let surface_center_pos = Point::new(
+            pos.x() as f64 * self.square_size,
+            pos.y() as f64 * self.square_size,
+        ) + Point::new(self.square_size / 2., self.square_size / 2.);
+
+        let offset_x = surface_center_pos.x() - (width as f64 / 2.);
+        let offset_y = surface_center_pos.y() - (height as f64 / 2.);
+        let output_surface = ImageSurface::create(Format::ARgb32, width, height)?;
+        let output_ctx = Context::new(&output_surface)?;
+
+        output_ctx.save()?;
+        let bg_fill = 0.9;
+        output_ctx.set_source_rgba(bg_fill, bg_fill, bg_fill, 1.0);
+        output_ctx.rectangle(0., 0., width as f64, height as f64);
+        output_ctx.fill()?;
+        output_ctx.restore()?;
+
+        output_ctx.set_source_surface(self.surface.clone(), -offset_x, -offset_y)?;
+        output_ctx.paint()?;
+
+        let minimap_surface = ImageSurface::create(
+            self.surface.format(),
+            self.surface.width(),
+            self.surface.height(),
+        )?;
+        let minimap_ctx = Context::new(&minimap_surface)?;
+
+        let minimap_size = 200f64;
+        minimap_ctx.scale(
+            minimap_size / self.surface.width() as f64,
+            minimap_size / self.surface.height() as f64,
+        );
+        minimap_ctx.set_source_surface(self.surface.clone(), 0., 0.)?;
+        minimap_ctx.paint()?;
+
+        minimap_ctx.save()?;
+        minimap_ctx.rectangle(
+            0.,
+            0.,
+            minimap_surface.width() as f64,
+            minimap_surface.height() as f64,
+        );
+        minimap_ctx.clip();
+
+        minimap_ctx.save()?;
+        let rect_x = surface_center_pos.x() - (width as f64 / 2.);
+        let rect_y = surface_center_pos.y() - (height as f64 / 2.);
+        minimap_ctx.rectangle(rect_x, rect_y, width as f64, height as f64);
+        minimap_ctx.set_source_rgb(0., 0., 0.);
+        minimap_ctx.set_line_width((self.surface.width() as f64 / width as f64) * 4.);
+        minimap_ctx.stroke()?;
+        minimap_ctx.restore()?;
+        minimap_ctx.restore()?;
+
+        output_ctx.set_source_surface(minimap_surface, 0., 0.)?;
+
+        output_ctx.paint()?;
+
+        output_ctx.save()?;
+        output_ctx.new_path();
+        output_ctx.move_to(minimap_size, 0.);
+        output_ctx.line_to(minimap_size, minimap_size);
+        output_ctx.line_to(0., minimap_size);
+        Color::rgba(0., 0., 0., 0.1).set_source_color(&output_ctx);
+        output_ctx.stroke()?;
+        output_ctx.restore()?;
+
+        output_surface
+            .write_to_png(&mut file)
+            .with_context(|| format!("Could not write focused frame to {}", filename))?;
+        Ok(())
+    }
+
     fn write_frame(&self) -> Result<()> {
         let idx = self.frame_counter.fetch_add(1, Ordering::SeqCst);
-        let filename = format!("frame-{:05}.png", idx).to_string();
+        let filename = format!("scratch/day03/part2-frame-{:05}.png", idx).to_string();
 
         eprintln!("Writing frame {:?}", filename);
         let mut file =
@@ -260,8 +397,7 @@ impl Add for Position {
     }
 }
 
-trait SizedPosIterator: Iterator<Item = Position> + Sized {}
-
+#[derive(Debug, Clone)]
 struct PartNumber {
     number: i32,
     positions: Vec<Position>,
@@ -320,24 +456,6 @@ fn get_neighbor_positions(grid: &Grid<Value>, position: Position) -> Vec<Positio
     neighbors
 }
 
-fn complete_part_number(grid: &Grid<Value>, symbol_position: Position) -> Vec<Position> {
-    let mut pos = symbol_position;
-    let mut positions: HashSet<Position> = HashSet::new();
-    while let Some(Value::Digit(_)) = pos.grid_value(grid) {
-        positions.insert(pos);
-        if pos.x == 0 {
-            break;
-        }
-        pos = Position::new(pos.x - 1, pos.y);
-    }
-    pos = symbol_position;
-    while let Some(Value::Digit(_)) = pos.grid_value(grid) {
-        positions.insert(pos);
-        pos = Position::new(pos.x + 1, pos.y);
-    }
-    positions.into_iter().collect()
-}
-
 fn grid_from_lines<'a, I>(lines: I) -> Result<Grid<Value>>
 where
     I: IntoIterator<Item = &'a str> + Index<usize, Output = &'a str> + Clone,
@@ -382,7 +500,6 @@ fn main() -> Result<()> {
 
     let evaluator = Evaluator::new(grid)?;
     evaluator.run()?;
-    println!("Hello, world!");
     Ok(())
 }
 

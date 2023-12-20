@@ -1,8 +1,9 @@
+use std::ops::Add;
+
 use anyhow::Result;
 use cairo;
 use cairo::{Content, Context, Operator};
-use pango::{Alignment, FontDescription, Layout};
-use std::ops::Add;
+use pango::{Alignment, FontDescription};
 
 #[derive(Copy, Clone)]
 pub struct Color {
@@ -13,10 +14,10 @@ pub struct Color {
 }
 
 impl Color {
-    pub fn rgb(r: f64, g: f64, b: f64) -> Self {
+    pub const fn rgb(r: f64, g: f64, b: f64) -> Self {
         Self::rgba(r, g, b, 1.0)
     }
-    pub fn rgba(r: f64, g: f64, b: f64, a: f64) -> Self {
+    pub const fn rgba(r: f64, g: f64, b: f64, a: f64) -> Self {
         Self { r, g, b, a }
     }
 
@@ -143,9 +144,6 @@ fn stroke_inside(context: &Context, stroke_color: Color) -> Result<()> {
     Ok(())
 }
 
-const TWEAKABLE_SCALE: f64 = 1.0;
-const DEVICE_DPI: f64 = 72.0;
-
 pub fn draw_text_in_center_of_square(
     context: &Context,
     text_color: Color,
@@ -164,15 +162,15 @@ pub fn draw_text_in_center_of_square(
     layout.set_alignment(Alignment::Center);
     layout.set_text(text);
 
-    let (width_int, height_int) = layout.size();
-    let (width, height) = (
-        width_int as f64 / pango::SCALE as f64,
-        (height_int as f64 / pango::SCALE as f64),
-    );
+    // let (width_int, height_int) = layout.size();
+    // let (width, height) = (
+    //     width_int as f64 / pango::SCALE as f64,
+    //     (height_int as f64 / pango::SCALE as f64),
+    // );
 
     // let extents = context.text_extents(text)?;
-    let horizontal_margin = (*square_size - width) / 2.0;
-    let vertical_margin = (*square_size - height) / 2.0;
+    // let horizontal_margin = (*square_size - width) / 2.0;
+    // let vertical_margin = (*square_size - height) / 2.0;
 
     let origin = Point::new(center.x(), (center.y() - ((*square_size) / 2.0)));
 
@@ -180,10 +178,11 @@ pub fn draw_text_in_center_of_square(
     //     .stroke(Color::rgba(0., 1., 1., 1.))
     //     .draw(context);
 
+    context.save()?;
     context.move_to(origin.x(), origin.y());
     text_color.set_source_color(context);
     // context.show_text(text)?;
     pangocairo::show_layout(context, &layout);
-    context.save()?;
+    context.restore()?;
     Ok(())
 }

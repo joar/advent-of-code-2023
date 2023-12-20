@@ -9,7 +9,6 @@ edition = "2021"
 [dependencies]
 anyhow = { version = "1.0.75", features = ["backtrace"] }
 aoc2023lib = { version = "0.1.0", path = "../aoc2023lib" }
-winit = "0.28"
 env_logger = "0.10"
 log = "0.4"
 config = "0.13.4"
@@ -23,4 +22,5 @@ tracing-core = "0.1.32"
 tracing-subscriber = { version = "0.3.18", features = [] }
 valuable = { version = "0.1.0", features = ["valuable-derive", "derive"] }
 pango = "0.18.3"
+tween = "2.0.2"
 
