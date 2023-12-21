@@ -5,4 +5,5 @@ members = [
     "day01-trebuchet",
     "day02-cube-conundrum",
     "day03-gear",
+    "day04-scratchcards",
 ]

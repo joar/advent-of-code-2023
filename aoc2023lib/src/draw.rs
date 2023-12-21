@@ -172,7 +172,7 @@ pub fn draw_text_in_center_of_square(
     // let horizontal_margin = (*square_size - width) / 2.0;
     // let vertical_margin = (*square_size - height) / 2.0;
 
-    let origin = Point::new(center.x(), (center.y() - ((*square_size) / 2.0)));
+    let origin = Point::new(center.x(), center.y() - ((*square_size) / 2.0));
 
     // Rectangle::create(origin + Point::new(-width / 2., 0.), width, height)
     //     .stroke(Color::rgba(0., 1., 1., 1.))

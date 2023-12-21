@@ -17,7 +17,7 @@ use aoc2023lib::{init_logging, read_lines};
 fn main() -> Result<()> {
     color_backtrace::install();
     init_logging();
-    let lines: Vec<String> = read_lines("../input")
+    let lines: Vec<String> = read_lines("day01-trebuchet/input")
         .expect("Error reading file")
         .collect::<Result<_, _>>()
         .expect("Error reading lines");

@@ -318,6 +318,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "day04-scratchcards"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "aoc2023lib",
+ "tracing",
+ "valuable",
+]
+
+[[package]]
 name = "digest"
 version = "0.10.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
