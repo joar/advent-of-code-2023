@@ -53,8 +53,8 @@ impl Game {
         }
 
         Ok(Self {
-            number: number.get().unwrap().clone(),
-            sets: sets,
+            number: *number.get().unwrap(),
+            sets,
         })
     }
 }
@@ -132,9 +132,9 @@ impl Stats {
         x?;
 
         Ok(Self {
-            red: red.get().unwrap_or(&0).clone(),
-            green: green.get().unwrap_or(&0).clone(),
-            blue: blue.get().unwrap_or(&0).clone(),
+            red: *red.get().unwrap_or(&0),
+            green: *green.get().unwrap_or(&0),
+            blue: *blue.get().unwrap_or(&0),
         })
     }
 }

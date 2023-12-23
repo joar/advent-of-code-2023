@@ -6,7 +6,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 
 use ::grid::Grid;
 use anyhow::{anyhow, Context as AnyhowContext, Result};
-use cairo;
+
 use cairo::{Context, Format, ImageSurface};
 
 use aoc2023lib::draw::{draw_text_in_center_of_square, Color, Draw, Point, Rectangle};
@@ -113,10 +113,10 @@ impl<'a> Evaluator {
             .filter_map(|pos| match pos.grid_value(&self.grid) {
                 Some(Value::Digit(_)) => {
                     if !visited_positions.contains(pos) {
-                        visited_positions.insert(pos.clone());
-                        let connected_numbers = self.complete_part_number(pos.clone()).unwrap();
+                        visited_positions.insert(*pos);
+                        let connected_numbers = self.complete_part_number(*pos).unwrap();
                         for cp in connected_numbers.clone() {
-                            visited_positions.insert(cp.clone());
+                            visited_positions.insert(cp);
                         }
                         Some(connected_numbers)
                     } else {
@@ -134,7 +134,7 @@ impl<'a> Evaluator {
         let mut positions: HashSet<Position> = HashSet::new();
         while let Some(Value::Digit(_)) = pos.grid_value(&self.grid) {
             if !positions.contains(&pos) {
-                self.draw_grid_value_with_background(pos.clone(), PART_NUMBER_COMPLETION_COLOR)?;
+                self.draw_grid_value_with_background(pos, PART_NUMBER_COMPLETION_COLOR)?;
                 self.write_focused_frame()?;
             }
             positions.insert(pos);
@@ -146,7 +146,7 @@ impl<'a> Evaluator {
         pos = symbol_position;
         while let Some(Value::Digit(_)) = pos.grid_value(&self.grid) {
             if !positions.contains(&pos) {
-                self.draw_grid_value_with_background(pos.clone(), PART_NUMBER_COMPLETION_COLOR)?;
+                self.draw_grid_value_with_background(pos, PART_NUMBER_COMPLETION_COLOR)?;
                 self.write_focused_frame()?;
             }
             positions.insert(pos);
@@ -166,8 +166,8 @@ impl<'a> Evaluator {
     }
 
     fn draw_grid_value_with_background(&self, position: Position, background: Color) -> Result<()> {
-        self.fill_square(position.clone(), Color::rgb(1.0, 1.0, 1.0))?;
-        self.fill_square(position.clone(), background)?;
+        self.fill_square(position, Color::rgb(1.0, 1.0, 1.0))?;
+        self.fill_square(position, background)?;
         self.draw_grid_value(position)?;
         Ok(())
     }
@@ -240,8 +240,8 @@ impl<'a> Evaluator {
             row.enumerate().filter_map(move |(x, value)| match value {
                 Value::Blank => None,
                 Value::Symbol(_) => Some(Position {
-                    x: x.clone(),
-                    y: y.clone(),
+                    x,
+                    y,
                 }),
                 Value::Digit(_) => None,
             })
@@ -250,7 +250,7 @@ impl<'a> Evaluator {
 
     fn write_focused_frame(&self) -> Result<()> {
         let idx = self.frame_counter.fetch_add(1, Ordering::SeqCst);
-        let output_path = format!("scratch/day03/focused").to_string();
+        let output_path = "scratch/day03/focused".to_string().to_string();
         let filename = format!("{}/frame-{:05}.png", output_path, idx).to_string();
 
         eprintln!("Writing focused frame {:?}", filename);
@@ -413,7 +413,7 @@ impl PartNumber {
         for pos in sorted_positions.clone() {
             match pos.grid_value(grid) {
                 Some(Value::Digit(value)) => {
-                    numbers.push(value.clone());
+                    numbers.push(*value);
                 }
                 other => Err(anyhow!(
                     "Expected number at position {:?}, got {:?}",

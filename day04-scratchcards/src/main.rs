@@ -1,7 +1,7 @@
 use anyhow::{Context, Error, Result};
 use aoc2023lib::{init_logging, read_lines};
 use std::collections::{HashMap, HashSet, VecDeque};
-use tracing::{trace, trace_span};
+use tracing::{trace_span};
 use valuable::Valuable;
 
 #[derive(Clone, Eq, PartialEq, Debug, Valuable)]
@@ -14,10 +14,10 @@ struct Card {
 impl Card {
     fn parse(text: &str) -> Result<Self> {
         let (card_text, all_numbers) = text
-            .split_once(":")
+            .split_once(':')
             .with_context(|| format!("Could not parse line {:?}", text))?;
         let (_, card_number_str) = card_text
-            .split_once(" ")
+            .split_once(' ')
             .with_context(|| format!("Could not split card number from {:?}", card_text))?;
         let card_number = card_number_str
             .trim()
@@ -47,7 +47,7 @@ impl Card {
 
 fn parse_space_delimited_numbers(text: &str) -> Result<Vec<i32>> {
     let vec =
-        text.split(" ")
+        text.split(' ')
             .filter(|&x| !x.is_empty())
             .try_fold(Vec::<i32>::new(), |mut acc, x| {
                 acc.push(
@@ -137,7 +137,7 @@ fn calculate_cards_won(cards: Vec<Card>) -> i32 {
         .entered();
         if let Some(winnings) = winnings_by_card_number.get(&card.card_number) {
             let mut new_cards: Vec<Card> = vec![];
-            for i in 0..winnings.clone() {
+            for i in 0..*winnings {
                 let next_card_idx = card.card_number + 1 + i;
                 if let Some(won_card) = cards_by_number.get(&next_card_idx) {
                     new_cards.push(won_card.clone());

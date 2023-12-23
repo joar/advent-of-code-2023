@@ -54,7 +54,7 @@ pub fn find_numbers(text: &str) -> anyhow::Result<Vec<u8>> {
                     .flat_map(|(k, vs)| vs.iter().map(|&v| (*k, v)))
                 {
                     let match_candidate =
-                        MatchCandidate::from_digit_word(candidate_start_pos.clone(), &candidate);
+                        MatchCandidate::from_digit_word(candidate_start_pos, &candidate);
 
                     match check_match(cursor_pos, &char_at_cursor, &match_candidate) {
                         MatchResult::Discard => {
@@ -62,7 +62,7 @@ pub fn find_numbers(text: &str) -> anyhow::Result<Vec<u8>> {
                                 candidate = candidate.as_value(),
                                 range = format_text_span(
                                     text,
-                                    candidate_start_pos.clone()..=cursor_pos
+                                    candidate_start_pos..=cursor_pos
                                 ),
                                 "DISCARD"
                             );
@@ -117,8 +117,8 @@ pub fn find_numbers(text: &str) -> anyhow::Result<Vec<u8>> {
     Ok(calibration_digits
         .iter()
         .map(|cd| match cd {
-            CalibrationDigit::AsDigit { value, .. } => value.clone(),
-            CalibrationDigit::AsWord { value, .. } => value.clone(),
+            CalibrationDigit::AsDigit { value, .. } => *value,
+            CalibrationDigit::AsWord { value, .. } => *value,
         })
         .collect())
 }
@@ -142,7 +142,7 @@ impl MatchCandidate {
         Self {
             start_pos,
             word: digit_word.char_vec().clone(),
-            value: digit_word.int_value().clone(),
+            value: digit_word.int_value(),
         }
     }
 

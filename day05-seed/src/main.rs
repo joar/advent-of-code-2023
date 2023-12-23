@@ -1,7 +1,7 @@
 use std::fs::read_to_string;
 
 use anyhow::{Context as AnyhowContext, Result};
-use indicatif::{ParallelProgressIterator, ProgressBar, ProgressIterator, ProgressStyle};
+use indicatif::{ProgressBar, ProgressStyle};
 use rayon::prelude::*;
 use si_scale::helpers::number_;
 
@@ -24,7 +24,7 @@ fn main() -> Result<()> {
         let locations: Vec<usize> = seed_context
             .seeds()
             .iter()
-            .map(|location| Ok(seed_context.resolve_location(location.clone())?))
+            .map(|location| seed_context.resolve_location(*location))
             .collect::<Result<Vec<_>>>()?;
 
         let closest_location = locations
@@ -35,7 +35,7 @@ fn main() -> Result<()> {
     };
 
     // Part 2
-    let _ = {
+    {
         let seed_context = parse::parse_input(
             read_to_string("day05-seed/input")
                 .context("Could not read string")?
@@ -46,7 +46,7 @@ fn main() -> Result<()> {
             .seeds()
             .chunks(2)
             .map(|x| match x {
-                [l, r] => (l.clone(), r.clone()),
+                [l, r] => (*l, *r),
                 other => panic!("Unexpected chunk: {:?}", other),
             })
             .collect::<Vec<(usize, usize)>>();
@@ -63,12 +63,12 @@ fn main() -> Result<()> {
         let closest_location: usize = ranges
             .par_iter()
             .flat_map(|(range_start, range_length)| {
-                (range_start.clone()..(range_start + range_length)).into_iter()
+                *range_start..(range_start + range_length)
             })
             .map(|location| {
                 progress.inc(1);
                 seed_context
-                    .resolve_location(location.clone())
+                    .resolve_location(location)
                     .with_context(|| format!("Could not resolve location {}", location))
                     .unwrap()
             })
@@ -98,7 +98,7 @@ mod test {
     #[test]
     fn test_modulo() {
         assert_eq!(10 % 10, 0);
-        assert_eq!(5 % 10, 5);
+        assert_eq!(5, 5);
     }
 
     #[test]

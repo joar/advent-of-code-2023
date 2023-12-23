@@ -125,7 +125,7 @@ impl SowingContext {
                 .redirects_by_source
                 .get(next)
                 .with_context(|| format!("No redirects with source {}", next))?;
-            let prev_location = location.clone();
+            let prev_location = location;
             location = redirects.resolve(prev_location)?;
             next = redirects.destination.as_str();
         }

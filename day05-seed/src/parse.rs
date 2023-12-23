@@ -74,7 +74,6 @@ impl RedirectsMut {
 pub fn parse_input(text: &str) -> anyhow::Result<SowingContext> {
     let lines: Vec<String> = text
         .lines()
-        .into_iter()
         .map(str::to_string)
         .to_owned()
         .collect::<Vec<_>>();
@@ -94,7 +93,7 @@ pub fn parse_input(text: &str) -> anyhow::Result<SowingContext> {
         if let Some(captures) = seeds_re.captures(line.as_ref()) {
             seeds = Some(
                 captures["numbers"]
-                    .split(" ")
+                    .split(' ')
                     .map(|number_str| Ok(number_str.parse::<usize>()?))
                     .collect::<anyhow::Result<Vec<_>>>()?,
             );
@@ -162,7 +161,7 @@ pub mod test {
     use crate::models::Redirect;
     use crate::parse::parse_input;
 
-    pub const TEST_INPUT: &'static str = "seeds: 79 14 55 13
+    pub const TEST_INPUT: &str = "seeds: 79 14 55 13
 
 seed-to-soil map:
 50 98 2
@@ -202,8 +201,7 @@ humidity-to-location map:
         assert_eq!(actual.seeds().clone(), vec![79, 14, 55, 13]);
         let sources: HashSet<String> = actual
             .redirects_by_source()
-            .keys()
-            .map(|x| x.clone())
+            .keys().cloned()
             .collect();
         assert_eq!(
             sources,

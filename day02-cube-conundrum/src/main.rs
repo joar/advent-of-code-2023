@@ -95,7 +95,7 @@ mod test {
 
     #[test]
     fn parse_cube_color() {
-        for color in vec!["red", "green", "blue"] {
+        for color in ["red", "green", "blue"] {
             dbg!(color);
             GamesParser::parse(Rule::cube_color, color).unwrap();
         }
