@@ -126,6 +126,7 @@ impl Draw for Rectangle {
     }
 }
 
+#[allow(dead_code)]
 fn stroke_inside(context: &Context, stroke_color: Color) -> Result<()> {
     let line_width = context.line_width();
     let operator = context.operator();
@@ -162,21 +163,7 @@ pub fn draw_text_in_center_of_square(
     layout.set_alignment(Alignment::Center);
     layout.set_text(text);
 
-    // let (width_int, height_int) = layout.size();
-    // let (width, height) = (
-    //     width_int as f64 / pango::SCALE as f64,
-    //     (height_int as f64 / pango::SCALE as f64),
-    // );
-
-    // let extents = context.text_extents(text)?;
-    // let horizontal_margin = (*square_size - width) / 2.0;
-    // let vertical_margin = (*square_size - height) / 2.0;
-
     let origin = Point::new(center.x(), center.y() - ((*square_size) / 2.0));
-
-    // Rectangle::create(origin + Point::new(-width / 2., 0.), width, height)
-    //     .stroke(Color::rgba(0., 1., 1., 1.))
-    //     .draw(context);
 
     context.save()?;
     context.move_to(origin.x(), origin.y());

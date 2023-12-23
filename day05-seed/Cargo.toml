@@ -12,3 +12,6 @@ regex = "1.10.2"
 tracing = { version = "0.1.40", features = ["log", "valuable"] }
 ctor = "0.2.6"
 valuable = { version = "0.1.0", features = ["valuable-derive", "derive"] }
+rayon = "1.8.0"
+si-scale = "0.2.2"
+indicatif = { version = "0.17.7", features = ["rayon", "unicode-segmentation", "improved_unicode", "futures", "vt100"] }
