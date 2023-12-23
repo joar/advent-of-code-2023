@@ -239,10 +239,7 @@ impl<'a> Evaluator {
         self.grid.iter_rows().enumerate().flat_map(|(y, row)| {
             row.enumerate().filter_map(move |(x, value)| match value {
                 Value::Blank => None,
-                Value::Symbol(_) => Some(Position {
-                    x,
-                    y,
-                }),
+                Value::Symbol(_) => Some(Position { x, y }),
                 Value::Digit(_) => None,
             })
         })
@@ -333,19 +330,6 @@ impl<'a> Evaluator {
             .with_context(|| format!("Could not write focused frame to {}", filename))?;
         Ok(())
     }
-
-    fn write_frame(&self) -> Result<()> {
-        let idx = self.frame_counter.fetch_add(1, Ordering::SeqCst);
-        let filename = format!("scratch/day03/part2-frame-{:05}.png", idx).to_string();
-
-        eprintln!("Writing frame {:?}", filename);
-        let mut file =
-            File::create(filename.as_str()).context("Could not create frame output file")?;
-        self.surface
-            .write_to_png(&mut file)
-            .with_context(|| format!("Could not write frame to {}", filename))?;
-        Ok(())
-    }
 }
 
 #[derive(Debug, Copy, Clone, Hash, Eq, PartialEq)]
@@ -367,20 +351,6 @@ impl Position {
         self.y
     }
 
-    pub fn add_x(&self, value: usize) -> Self {
-        Self {
-            x: self.x + value,
-            y: self.y,
-        }
-    }
-
-    pub fn sub_x(&mut self, value: usize) -> Self {
-        Self {
-            x: self.x - value,
-            y: self.y,
-        }
-    }
-
     pub fn grid_value<'a, T>(&self, grid: &'a Grid<T>) -> Option<&'a T> {
         grid.get(self.y, self.x)
     }
@@ -400,6 +370,7 @@ impl Add for Position {
 #[derive(Debug, Clone)]
 struct PartNumber {
     number: i32,
+    #[allow(dead_code)]
     positions: Vec<Position>,
 }
 

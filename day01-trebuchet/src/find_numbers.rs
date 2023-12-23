@@ -60,10 +60,7 @@ pub fn find_numbers(text: &str) -> anyhow::Result<Vec<u8>> {
                         MatchResult::Discard => {
                             trace!(
                                 candidate = candidate.as_value(),
-                                range = format_text_span(
-                                    text,
-                                    candidate_start_pos..=cursor_pos
-                                ),
+                                range = format_text_span(text, candidate_start_pos..=cursor_pos),
                                 "DISCARD"
                             );
                         }
@@ -131,6 +128,7 @@ struct MatchCandidate {
 }
 
 impl MatchCandidate {
+    #[cfg(test)]
     pub fn new(start_pos: usize, word: &str, value: u8) -> Self {
         Self {
             start_pos,
@@ -219,33 +217,6 @@ fn check_match(
             false => MatchResult::Continue,
         },
     }
-}
-
-fn drop_overlapping(
-    text: &str,
-    next_start_positions: &mut HashMap<usize, Vec<DigitWord>>,
-    cursor_pos: usize,
-) -> HashMap<usize, Vec<DigitWord>> {
-    let filtered_next: HashMap<usize, Vec<DigitWord>> = next_start_positions
-        .clone()
-        .iter()
-        .map(|(k, vs)| (*k, vs.clone()))
-        .map(|(k, vs)| match k > cursor_pos {
-            false => {
-                for v in vs {
-                    trace!(
-                        start_pos = k,
-                        range = format_text_span(text, k..cursor_pos),
-                        candidate = v.as_value(),
-                        "DROP OVERLAP",
-                    );
-                }
-                (k, Vec::new())
-            }
-            true => (k, vs),
-        })
-        .collect();
-    filtered_next
 }
 
 fn create_start_positions(len: usize) -> HashMap<usize, Vec<DigitWord>> {

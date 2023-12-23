@@ -70,6 +70,7 @@ impl Redirects {
         )
     }
 
+    #[cfg(test)]
     pub fn redirects(&self) -> Vec<Redirect> {
         self.redirects.clone()
     }
@@ -136,6 +137,7 @@ impl SowingContext {
         &self.seeds
     }
 
+    #[cfg(test)]
     pub fn redirects_by_source(&self) -> &HashMap<String, Redirects> {
         &self.redirects_by_source
     }
