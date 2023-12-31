@@ -8,6 +8,7 @@
       <sourceFolder url="file://$MODULE_DIR$/day03-gear/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/day04-scratchcards/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/day05-seed/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/day06-wait/src" isTestSource="false" />
       <excludeFolder url="file://$MODULE_DIR$/day01-trebuchet/target" />
       <excludeFolder url="file://$MODULE_DIR$/target" />
       <excludeFolder url="file://$MODULE_DIR$/scratch" />

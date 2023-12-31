@@ -1,4 +1,6 @@
+#[cfg(feature = "draw")]
 pub mod draw;
+
 use tracing_subscriber::{fmt, prelude::*, EnvFilter};
 
 use std::fs::File;
@@ -19,8 +21,6 @@ static LOGGING_INIT: Once = Once::new();
 
 pub fn init_logging() {
     LOGGING_INIT.call_once(|| {
-        // pretty_env_logger::init();
-
         tracing_subscriber::registry()
             .with(fmt::layer())
             .with(EnvFilter::from_default_env())

@@ -39,7 +39,7 @@ where
 }
 
 pub fn format_text_with_marked_span_multiline(text: &str, range: Range<usize>) -> String {
-    let span_size = range.end - range.start;
+    let span_size = range.end as isize - range.start as isize;
     let marker = match span_size {
         0 => "".to_string(),
         1 => ARROW_UP.to_string(),
