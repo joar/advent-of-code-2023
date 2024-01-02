@@ -10,5 +10,5 @@ members = [
     "day03-gear",
     "day04-scratchcards",
     "day05-seed",
-    "day06-wait",
+    "day06-wait", "day07-camel",
 ]
