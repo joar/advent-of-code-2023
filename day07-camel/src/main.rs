@@ -7,6 +7,7 @@ use aoc2023lib::init_logging;
 use crate::data::{Bid, Hand};
 use crate::parse::parse_input;
 
+#[cfg(test)]
 static TEST_INPUT: &str = "32T3K 765
 T55J5 684
 KK677 28\x20
@@ -53,7 +54,7 @@ mod test {
         let parsed = parse_input(TEST_INPUT).unwrap();
         let actual: Vec<_> = calculate_ranks(parsed)
             .into_iter()
-            .map(|(rank, (hand, bid))| (rank, hand))
+            .map(|(rank, (hand, _bid))| (rank, hand))
             .collect();
         assert_eq!(
             actual,
@@ -71,7 +72,7 @@ mod test {
     fn test_calculate_winnings() {
         let parsed: Vec<_> = crate::TEST_INPUT
             .lines()
-            .map(|line| parse_line(line))
+            .map(parse_line)
             .collect::<anyhow::Result<Vec<_>>>()
             .unwrap();
         let actual = calculate_winnings(calculate_ranks(parsed));
@@ -120,8 +121,8 @@ mod data {
                         count,
                         count_by_card
                             .iter()
-                            .filter(|&(k, &v)| v as usize == count)
-                            .map(|(k, v)| {
+                            .filter(|&(_k, &v)| v as usize == count)
+                            .map(|(k, _v)| {
                                 trace!("{count:?} of {k:?}", count = count, k = k);
                             })
                             .count(),
@@ -227,7 +228,7 @@ mod data {
         }
 
         pub fn parse(s: &str) -> Result<Self> {
-            Ok(Self::from_str(s)?)
+            Self::from_str(s)
         }
     }
 
@@ -312,7 +313,7 @@ mod data {
             })
         }
         pub fn r#type(&self) -> Type {
-            self.r#type.clone()
+            self.r#type
         }
     }
 
@@ -323,9 +324,7 @@ mod data {
 
     impl Bid {
         pub fn new(amount: u32) -> Self {
-            Self {
-                amount: amount.into(),
-            }
+            Self { amount }
         }
         pub fn amount(&self) -> u32 {
             self.amount
@@ -389,12 +388,12 @@ mod data {
         fn test_cards_on_hand_parse_error() {
             let hand = "AKXQQ";
             let actual = CardsOnHand::parse(hand);
-            assert_eq!(actual.is_err(), true);
+            assert!(actual.is_err());
         }
 
         #[test]
         fn test_type_from_cards() {
-            let actual = vec!["32T3K", "T55J5", "KK677", "KTJJT", "QQQJA"]
+            let actual = ["32T3K", "T55J5", "KK677", "KTJJT", "QQQJA"]
                 .iter()
                 .map(|s| CardsOnHand::parse(s)?.try_into())
                 .collect::<Result<Vec<Type>>>()
@@ -420,15 +419,12 @@ mod parse {
     use crate::data::{Bid, Hand};
 
     pub fn parse_input(input: &str) -> Result<Vec<(Hand, Bid)>> {
-        input
-            .lines()
-            .map(|line| parse_line(line))
-            .collect::<Result<Vec<_>>>()
+        input.lines().map(parse_line).collect::<Result<Vec<_>>>()
     }
 
     pub fn parse_line(line: &str) -> Result<(Hand, Bid)> {
         let (hand_str, bid_str) = line
-            .split_once(" ")
+            .split_once(' ')
             .with_context(|| format!("Could not split {:?} once", line))?;
         Ok((
             Hand::parse(hand_str)?,

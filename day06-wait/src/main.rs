@@ -50,7 +50,7 @@ mod data {
                 })
                 .collect::<Vec<_>>();
             tracing::Span::current().record("winning_attempts", format!("{:?}", attempts));
-            Ok(winning_attempts.iter().count())
+            Ok(winning_attempts.len())
         }
 
         #[instrument(ret)]
@@ -117,11 +117,9 @@ mod data {
 
         #[test]
         fn test_number_of_ways_to_beat() {
-            let races = vec![
-                Race::from_ms_and_mm(7, 9),
+            let races = [Race::from_ms_and_mm(7, 9),
                 Race::from_ms_and_mm(15, 40),
-                Race::from_ms_and_mm(30, 200),
-            ];
+                Race::from_ms_and_mm(30, 200)];
             let actual = races
                 .iter()
                 .map(|race| race.number_of_ways_to_beat())
@@ -150,11 +148,11 @@ mod parse {
 
     fn parse_times_and_distances(input: &str) -> Result<(Vec<usize>, Vec<usize>)> {
         let lines: Vec<&str> = input.lines().collect();
-        let times: Vec<_> = match lines.get(0) {
+        let times: Vec<_> = match lines.first() {
             Some(&times_line) => {
                 if times_line.starts_with("Time: ") {
                     let times: Result<Vec<_>> = times_line
-                        .split(" ")
+                        .split(' ')
                         .filter_map(|s| match s {
                             "Time:" => None,
                             "" => None,
@@ -175,7 +173,7 @@ mod parse {
             Some(&distances_line) => {
                 if distances_line.starts_with("Distance: ") {
                     let times: Result<Vec<_>> = distances_line
-                        .split(" ")
+                        .split(' ')
                         .filter_map(|s| match s {
                             "Distance:" => None,
                             "" => None,
